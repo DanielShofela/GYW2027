@@ -1,0 +1,6 @@
+{
+  "name": "GLORIOUS YOUTH WORLDWIDE 2027",
+  "description": "Plateforme officielle d'inscription pour le rassemblement chrétien annuel GLORIOUS YOUTH WORLDWIDE 2027 (6e édition, 1er au 3 janvier 2027).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
