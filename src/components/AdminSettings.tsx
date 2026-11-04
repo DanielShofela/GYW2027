@@ -16,15 +16,19 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 
+import { User } from 'firebase/auth';
+
 interface AdminSettingsProps {
   settings: EventSettings;
   lang: Language;
+  currentUser?: User | null;
   onSettingsUpdated: (updated: EventSettings) => void;
 }
 
 export const AdminSettings: React.FC<AdminSettingsProps> = ({
   settings,
   lang,
+  currentUser,
   onSettingsUpdated,
 }) => {
   const t = translations[lang];
@@ -62,13 +66,26 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
         updatedAt: new Date().toISOString(),
       };
 
-      await updateEventSettings(updatedPayload);
-      onSettingsUpdated(updatedPayload);
+      const savedResult = await updateEventSettings(updatedPayload, currentUser);
+      onSettingsUpdated(savedResult);
       setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      setTimeout(() => setSuccess(false), 3500);
     } catch (err: any) {
-      console.error('Failed to save settings:', err);
-      setError(err.message || 'Erreur lors de la sauvegarde');
+      console.error('Failed to save settings to Firebase:', err);
+      const isPermissionDenied =
+        err?.code === 'permission-denied' ||
+        err?.message?.includes('permission-denied') ||
+        err?.message === 'NOT_AUTHORIZED';
+
+      setError(
+        isPermissionDenied
+          ? lang === 'fr'
+            ? 'Échec de la sauvegarde : Action non autorisée par Firebase. Vos modifications sont conservées dans le formulaire ci-dessous pour réessayer.'
+            : 'Save failed: Permission denied by Firebase. Your changes are preserved in the form below to retry.'
+          : lang === 'fr'
+          ? 'Échec de la sauvegarde Firebase (problème réseau ou serveur). Vos modifications sont conservées.'
+          : 'Failed to save to Firebase (network or server error). Your inputs are preserved.'
+      );
     } finally {
       setSaving(false);
     }

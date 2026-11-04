@@ -332,6 +332,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <AdminSettings
           settings={settings}
           lang={lang}
+          currentUser={currentUser}
           onSettingsUpdated={onSettingsUpdated}
         />
       )}

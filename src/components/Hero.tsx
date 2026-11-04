@@ -7,6 +7,7 @@ interface HeroProps {
   lang: Language;
   onGoToRegister: () => void;
   settings: EventSettings;
+  isSettingsLoading?: boolean;
   registrationsCount?: number;
 }
 
@@ -14,6 +15,7 @@ export const Hero: React.FC<HeroProps> = ({
   lang,
   onGoToRegister,
   settings,
+  isSettingsLoading = false,
   registrationsCount,
 }) => {
   const t = translations[lang];
@@ -39,22 +41,37 @@ export const Hero: React.FC<HeroProps> = ({
           </span>
         </div>
 
-        {/* Official Logo (or clearly identified temporary fallback if no logo imported yet) */}
+        {/* 
+          Official Logo - 3 Strict States:
+          1. READY: Valid official logo is available (either from synchronous cache or server). Render directly.
+          2. LOADING: Settings are fetching from Firebase and logo is not yet cached. Reserve layout space without jarring warning text.
+          3. EMPTY: Firebase confirmed no official logo is configured. Show clean fallback title.
+        */}
         {settings.logoUrl ? (
-          <div className="my-6 sm:my-8 flex justify-center items-center px-2">
+          /* STATE 1: READY */
+          <div className="my-6 sm:my-8 flex justify-center items-center px-2 min-h-[140px] sm:min-h-[180px] md:min-h-[220px]">
             <img
               src={settings.logoUrl}
               alt="Logo officiel GLORIOUS YOUTH WORLDWIDE 2027"
-              className="w-full max-w-[280px] xs:max-w-[340px] sm:max-w-md md:max-w-lg max-h-56 sm:max-h-72 object-contain mx-auto select-none pointer-events-none transition-all"
+              loading="eager"
+              decoding="async"
+              className="w-full max-w-[280px] xs:max-w-[340px] sm:max-w-md md:max-w-lg max-h-56 sm:max-h-72 object-contain mx-auto select-none pointer-events-none transition-opacity duration-300"
             />
           </div>
-        ) : (
-          <div className="my-6 max-w-lg mx-auto py-5 px-6 rounded-2xl border-2 border-dashed border-[#111111]/40 bg-white/40 text-center">
-            <div className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-              {lang === 'fr'
-                ? 'Titre temporaire • Logo officiel en attente d\'importation'
-                : 'Temporary Title • Official Logo Pending Upload'}
+        ) : isSettingsLoading ? (
+          /* STATE 2: LOADING - Reserved space with calm placeholder, NO temporary warning text */
+          <div
+            className="my-6 sm:my-8 flex justify-center items-center px-2 min-h-[140px] sm:min-h-[180px] md:min-h-[220px]"
+            aria-busy="true"
+            aria-label={lang === 'fr' ? 'Chargement de l\'identité visuelle...' : 'Loading visual identity...'}
+          >
+            <div className="w-full max-w-[280px] xs:max-w-[340px] sm:max-w-md md:max-w-lg h-36 sm:h-48 md:h-56 rounded-2xl bg-[#FFF3DD]/60 border-2 border-dashed border-[#111111]/20 animate-pulse flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full border-3 border-[#FF6A00]/30 border-t-[#FF6A00] animate-spin" />
             </div>
+          </div>
+        ) : (
+          /* STATE 3: EMPTY - Confirmed absence of logo after Firebase resolution */
+          <div className="my-6 max-w-lg mx-auto py-5 px-6 rounded-2xl border-2 border-dashed border-[#111111]/30 bg-white/40 text-center">
             <h1 className="text-2xl sm:text-4xl font-black text-[#111111] uppercase tracking-tight font-['Space_Grotesk'] leading-tight">
               GLORIOUS YOUTH <span className="text-[#FF6A00]">WORLDWIDE</span> 2027
             </h1>

@@ -13,7 +13,7 @@ test('valid clean SVG passes validation and generates dataUri', () => {
   const result = sanitizeAndValidateSvg(cleanSvg, 250);
   assert.equal(result.isValid, true);
   assert.ok(result.dataUri);
-  assert.ok(result.dataUri.startsWith('data:image/svg+xml;base64,'));
+  assert.ok(result.dataUri!.startsWith('data:image/svg+xml;base64,'));
 });
 
 test('rejects files larger than 2MB', () => {

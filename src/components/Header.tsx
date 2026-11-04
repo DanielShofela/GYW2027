@@ -12,6 +12,7 @@ interface HeaderProps {
   currentUser: User | null;
   isAdmin: boolean;
   onOpenAdminLogin: () => void;
+  headerLogoUrl?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -22,6 +23,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentUser,
   isAdmin,
   onOpenAdminLogin,
+  headerLogoUrl,
 }) => {
   const t = translations[lang];
 
@@ -33,10 +35,20 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => onNavigate('home')}
           className="flex items-center gap-2.5 text-left group cursor-pointer"
         >
-          {/* Logo Frame: Reserved space for official logo */}
-          <div className="w-11 h-11 rounded-xl bg-[#FF6A00] border-2 border-[#111111] shadow-[2px_2px_0_0_#111111] flex items-center justify-center text-white font-black text-xl tracking-tighter shrink-0 transition-transform group-hover:-translate-y-0.5">
-            GYW
-          </div>
+          {/* Logo Frame: Custom Header Logo or GYW fallback */}
+          {headerLogoUrl ? (
+            <div className="h-10 sm:h-11 flex items-center justify-center shrink-0">
+              <img
+                src={headerLogoUrl}
+                alt="Logo officiel Glorious Youth Worldwide 2027"
+                className="h-9 sm:h-10 w-auto max-w-[130px] sm:max-w-[170px] object-contain select-none transition-transform group-hover:-translate-y-0.5"
+              />
+            </div>
+          ) : (
+            <div className="w-11 h-11 rounded-xl bg-[#FF6A00] border-2 border-[#111111] shadow-[2px_2px_0_0_#111111] flex items-center justify-center text-white font-black text-xl tracking-tighter shrink-0 transition-transform group-hover:-translate-y-0.5">
+              GYW
+            </div>
+          )}
 
           <div className="flex flex-col">
             <span className="font-extrabold text-[#111111] text-sm sm:text-base leading-tight tracking-tight uppercase font-['Space_Grotesk']">

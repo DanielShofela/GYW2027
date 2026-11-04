@@ -38,6 +38,8 @@ export interface EventSettings {
   announcement?: string;
   logoUrl?: string;
   logoUpdatedAt?: string;
+  headerLogoUrl?: string;
+  headerLogoUpdatedAt?: string;
   updatedAt: string;
   updatedBy?: string;
 }

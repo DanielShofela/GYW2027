@@ -3,6 +3,7 @@ import { User, onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase/config';
 import {
   getEventSettings,
+  getInitialCachedSettings,
   verifyIsAdmin,
   subscribeToRegistrations,
   logOutAdmin,
@@ -20,17 +21,6 @@ import { AdminAccessDenied } from './components/AdminAccessDenied';
 import { PrivacyModal } from './components/PrivacyModal';
 import { ShieldCheck, Loader2 } from 'lucide-react';
 
-const INITIAL_SETTINGS: EventSettings = {
-  location: 'Abidjan, Côte d\'Ivoire (Lieu exact communiqué prochainement)',
-  schedules: '1er au 3 janvier 2027 • Accueil à partir de 08h00',
-  contactPhone: '+225 07 00 00 00 00',
-  whatsappChannelUrl: '',
-  registrationsOpen: true,
-  closingDate: '31 décembre 2026 à 23h59',
-  announcement: 'Les inscriptions sont 100% gratuites. Réservez votre place dès maintenant !',
-  updatedAt: new Date().toISOString(),
-};
-
 type AppRoute = 'home' | 'register' | 'confirmation' | 'admin';
 
 export default function App() {
@@ -47,7 +37,10 @@ export default function App() {
   });
 
   const [lastRegistration, setLastRegistration] = useState<Registration | null>(null);
-  const [settings, setSettings] = useState<EventSettings>(INITIAL_SETTINGS);
+  
+  // Initialize synchronously from cache so the official logo renders at frame 0 with ZERO CLS
+  const [settings, setSettings] = useState<EventSettings>(() => getInitialCachedSettings());
+  const [isSettingsLoading, setIsSettingsLoading] = useState(true);
 
   // Authentication & Authorization state
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -97,10 +90,17 @@ export default function App() {
   // 1. Load public event settings from Firestore
   useEffect(() => {
     getEventSettings()
-      .then((loaded) => setSettings(loaded))
-      .catch((err) => console.error('Failed to load event settings:', err));
+      .then((loaded) => {
+        setSettings(loaded);
+        setIsSettingsLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to load event settings:', err);
+        setIsSettingsLoading(false);
+      });
 
-    if (typeof window !== 'undefined') {
+    // Development test helpers: only exposed during local development (stripped in production)
+    if (import.meta.env.DEV && typeof window !== 'undefined') {
       (window as any).__setDevAdmin = () => {
         const mockAdmin = {
           uid: 'dev-admin-uid-1',
@@ -190,6 +190,7 @@ export default function App() {
         currentUser={currentUser}
         isAdmin={isAdmin}
         onOpenAdminLogin={() => navigateTo('admin')}
+        headerLogoUrl={settings.headerLogoUrl}
       />
 
       {/* Main Content Area */}
@@ -199,6 +200,7 @@ export default function App() {
             lang={lang}
             onGoToRegister={() => navigateTo('register')}
             settings={settings}
+            isSettingsLoading={isSettingsLoading}
             registrationsCount={registrations.length}
           />
         )}

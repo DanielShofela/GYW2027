@@ -28,8 +28,30 @@ const DEFAULT_SETTINGS: EventSettings = {
   registrationsOpen: true,
   closingDate: '31 décembre 2026 à 23h59',
   announcement: 'Les inscriptions sont 100% gratuites. Réservez votre place dès maintenant !',
+  logoUrl: '',
+  logoUpdatedAt: '',
+  headerLogoUrl: '',
+  headerLogoUpdatedAt: '',
   updatedAt: new Date().toISOString(),
 };
+
+/**
+ * Returns locally cached event settings synchronously to eliminate first-load layout shift and flashes.
+ */
+export function getInitialCachedSettings(): EventSettings {
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('gyw_event_settings');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return { ...DEFAULT_SETTINGS, ...parsed };
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return DEFAULT_SETTINGS;
+}
 
 /**
  * Checks if the currently authenticated user is an authorized administrator.
@@ -42,7 +64,7 @@ export async function verifyIsAdmin(user: User | null): Promise<boolean> {
   const check = isAuthorizedAdmin({
     uid: user.uid,
     email: user.email,
-    email_verified: user.emailVerified,
+    email_verified: (user as any).emailVerified ?? (user as any).email_verified,
   });
 
   if (check.authorized) {
@@ -82,15 +104,7 @@ export async function logOutAdmin(): Promise<void> {
  * Retrieves global event settings with Firestore persistence and client-side fallback cache.
  */
 export async function getEventSettings(): Promise<EventSettings> {
-  let cached: Partial<EventSettings> = {};
-  if (typeof window !== 'undefined') {
-    try {
-      const raw = localStorage.getItem('gyw_event_settings');
-      if (raw) cached = JSON.parse(raw);
-    } catch {
-      // ignore
-    }
-  }
+  const cached = getInitialCachedSettings();
 
   try {
     const snapshot = await getDoc(doc(db, 'settings', 'event'));
@@ -110,30 +124,52 @@ export async function getEventSettings(): Promise<EventSettings> {
       }
       return merged;
     }
-    return { ...DEFAULT_SETTINGS, ...cached };
+    return cached;
   } catch (error) {
     // If read fails or not yet created, return cached / defaults
     console.warn('Could not load settings from server, using cached/defaults:', error);
-    return { ...DEFAULT_SETTINGS, ...cached };
+    return cached;
   }
 }
 
 /**
  * Updates event settings (Admin only).
+ * Strictly enforces successful Firestore persistence BEFORE updating client cache.
+ * Carefully merges with existing settings to prevent accidentally erasing other configurations or logos.
  */
 export async function updateEventSettings(
   newSettings: Partial<EventSettings>,
   callerUser?: User | null
-): Promise<void> {
+): Promise<EventSettings> {
   const path = 'settings/event';
+  const user = callerUser || auth.currentUser;
+  const isAuthorized = await verifyIsAdmin(user);
+  if (!isAuthorized) {
+    throw new Error('NOT_AUTHORIZED');
+  }
+
+  const existing = getInitialCachedSettings();
   const payload: EventSettings = {
     ...DEFAULT_SETTINGS,
+    ...existing,
     ...newSettings,
     updatedAt: new Date().toISOString(),
-    updatedBy: callerUser?.email || auth.currentUser?.email || 'admin',
+    updatedBy: user?.email || 'admin',
   };
 
-  // Synchronize client cache immediately for seamless persistence across reloads
+  const settingsDoc = doc(db, 'settings', 'event');
+
+  try {
+    // 1. Strict write to Firestore server
+    await setDoc(settingsDoc, payload, { merge: true });
+  } catch (error: any) {
+    // 2. On failure, NEVER update local cache. Throw error to notify admin immediately!
+    console.error('Firestore write to settings failed:', error);
+    handleFirestoreError(error, OperationType.WRITE, path);
+    throw error;
+  }
+
+  // 3. ONLY after Firestore write is confirmed successful, synchronize local cache
   if (typeof window !== 'undefined') {
     try {
       localStorage.setItem('gyw_event_settings', JSON.stringify(payload));
@@ -142,27 +178,11 @@ export async function updateEventSettings(
     }
   }
 
-  try {
-    const settingsDoc = doc(db, 'settings', 'event');
-    await setDoc(settingsDoc, payload, { merge: true });
-  } catch (error: any) {
-    // If running in mock test session or dev mode without live Google Auth token in Firebase SDK
-    if (
-      error?.code === 'permission-denied' ||
-      error?.message?.includes('Missing or insufficient permissions')
-    ) {
-      console.warn(
-        'Firestore write requires active Firebase Auth credential. Local state will be updated.',
-        error
-      );
-      return;
-    }
-    handleFirestoreError(error, OperationType.WRITE, path);
-  }
+  return payload;
 }
 
 /**
- * Updates the official SVG logo in persistent storage and Firestore settings.
+ * Updates the official main SVG logo in persistent storage and Firestore settings.
  * Checks server-side authorization and uploads to Firebase Storage with Firestore persistence.
  */
 export async function updateOfficialLogo(
@@ -225,7 +245,7 @@ export async function updateOfficialLogo(
 }
 
 /**
- * Removes the official logo from persistent settings.
+ * Removes the official main logo from persistent settings.
  */
 export async function removeOfficialLogo(callerUser?: User | null): Promise<void> {
   const user = callerUser || auth.currentUser;
@@ -241,6 +261,112 @@ export async function removeOfficialLogo(callerUser?: User | null): Promise<void
     },
     user
   );
+}
+
+/**
+ * Updates the official header SVG logo in persistent storage and Firestore settings.
+ */
+export async function updateHeaderLogo(
+  sanitizedDataUri: string,
+  rawSvgText?: string,
+  callerUser?: User | null
+): Promise<string> {
+  const user = callerUser || auth.currentUser;
+  const isAuthorized = await verifyIsAdmin(user);
+  if (!isAuthorized) {
+    throw new Error('NOT_AUTHORIZED');
+  }
+
+  const now = new Date().toISOString();
+  let finalLogoUrl = sanitizedDataUri;
+
+  try {
+    const timestamp = Date.now();
+    const storageRef = ref(storage, `logos/header_logo_${timestamp}.svg`);
+    const contentToUpload = rawSvgText || sanitizedDataUri;
+
+    const uploadAttempt = (async () => {
+      await uploadString(
+        storageRef,
+        contentToUpload,
+        rawSvgText ? 'raw' : 'data_url',
+        {
+          contentType: 'image/svg+xml',
+          cacheControl: 'public, max-age=31536000',
+        }
+      );
+      const downloadUrl = await getDownloadURL(storageRef);
+      return downloadUrl ? `${downloadUrl}?v=${timestamp}` : sanitizedDataUri;
+    })();
+
+    const timeoutPromise = new Promise<string>((_, reject) => {
+      setTimeout(() => reject(new Error('STORAGE_TIMEOUT')), 2000);
+    });
+
+    finalLogoUrl = await Promise.race([uploadAttempt, timeoutPromise]);
+  } catch (storageError) {
+    console.warn(
+      'Storage fallback for header logo, persisting sanitized SVG data URI directly in Firestore:',
+      storageError
+    );
+    finalLogoUrl = sanitizedDataUri;
+  }
+
+  await updateEventSettings(
+    {
+      headerLogoUrl: finalLogoUrl,
+      headerLogoUpdatedAt: now,
+    },
+    user
+  );
+
+  return finalLogoUrl;
+}
+
+/**
+ * Removes the header logo from persistent settings (falls back to GYW default emblem).
+ */
+export async function removeHeaderLogo(callerUser?: User | null): Promise<void> {
+  const user = callerUser || auth.currentUser;
+  const isAuthorized = await verifyIsAdmin(user);
+  if (!isAuthorized) {
+    throw new Error('NOT_AUTHORIZED');
+  }
+
+  await updateEventSettings(
+    {
+      headerLogoUrl: '',
+      headerLogoUpdatedAt: new Date().toISOString(),
+    },
+    user
+  );
+}
+
+/**
+ * Clones the active main logo to be used as the header logo.
+ */
+export async function useMainLogoAsHeaderLogo(callerUser?: User | null): Promise<string> {
+  const user = callerUser || auth.currentUser;
+  const isAuthorized = await verifyIsAdmin(user);
+  if (!isAuthorized) {
+    throw new Error('NOT_AUTHORIZED');
+  }
+
+  const currentSettings = getInitialCachedSettings();
+  if (!currentSettings.logoUrl) {
+    throw new Error('NO_MAIN_LOGO');
+  }
+
+  const now = new Date().toISOString();
+  await updateEventSettings(
+    {
+      headerLogoUrl: currentSettings.logoUrl,
+      headerLogoUpdatedAt: now,
+    },
+    user
+  );
+
+  return currentSettings.logoUrl;
 }
 
 /**

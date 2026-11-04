@@ -2,31 +2,41 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Default deny all
+    // Default deny all access
     match /{document=**} {
       allow read, write: if false;
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-\\+]+$');
     }
 
     function isSignedIn() {
       return request.auth != null;
     }
 
+    function isPrimaryAdmin() {
+      return isSignedIn() &&
+        request.auth.token.email == 'digitalsoutien@gmail.com' &&
+        request.auth.token.email_verified == true;
+    }
+
     function isAdmin() {
-      return isSignedIn() && (
-        (request.auth.token.email == 'digitalsoutien@gmail.com' && request.auth.token.email_verified == true) ||
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      return isPrimaryAdmin() || (
+        isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
+    }
+
+    function areRegistrationsOpen() {
+      return !exists(/databases/$(database)/documents/settings/event) ||
+        get(/databases/$(database)/documents/settings/event).data.registrationsOpen == true;
     }
 
     function incoming() {
       return request.resource.data;
     }
 
-    function isValidRegistration(data) {
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-\\+]+$');
+    }
+
+    function isValidRegistration(registrationId, data) {
       return data.keys().hasAll([
         'firstName',
         'lastName',
@@ -56,15 +66,16 @@ service cloud.firestore {
         'createdAt',
         'updatedAt'
       ])
+      && registrationId == 'reg_' + data.normalizedPhone
+      && data.normalizedPhone.matches('^\\+[0-9]{8,15}$')
       && data.firstName is string && data.firstName.size() >= 2 && data.firstName.size() <= 80
       && data.lastName is string && data.lastName.size() >= 2 && data.lastName.size() <= 80
       && data.whatsappPhone is string && data.whatsappPhone.size() >= 8 && data.whatsappPhone.size() <= 30
-      && data.normalizedPhone is string && data.normalizedPhone.size() >= 8 && data.normalizedPhone.size() <= 20
       && data.city is string && data.city.size() >= 2 && data.city.size() <= 100
       && (!('church' in data) || (data.church is string && data.church.size() <= 120))
       && (!('ageCategory' in data) || (data.ageCategory in ['under_15', '15_17', '18_25', '26_35', 'over_35', 'not_specified']))
       && data.attendanceDays is list && data.attendanceDays.size() >= 1 && data.attendanceDays.size() <= 3
-      && data.status in ['confirmed', 'cancelled', 'attended']
+      && data.status == 'confirmed'
       && data.referenceCode is string && data.referenceCode.size() >= 6 && data.referenceCode.size() <= 30
       && data.consentAccepted == true
       && (!('consentVersion' in data) || (data.consentVersion is string && data.consentVersion.size() <= 20));
@@ -74,13 +85,21 @@ service cloud.firestore {
       // PII Protection: Only verified admins can list, get or delete registrations
       allow get, list, delete: if isAdmin();
       
-      // Public registration: anyone can submit if valid and not an existing duplicate
+      // Public registration: anyone can submit if valid, registrations are open, and not an existing duplicate
       allow create: if isValidId(registrationId)
-        && isValidRegistration(incoming())
+        && areRegistrationsOpen()
+        && isValidRegistration(registrationId, incoming())
         && (!exists(/databases/$(database)/documents/registrations/$(registrationId)));
 
-      // Admins can update status, church, etc.
-      allow update: if isAdmin();
+      // Admins can update status, church, etc. while protecting immutable fields
+      allow update: if isAdmin() && (
+        incoming().id == resource.data.id &&
+        incoming().normalizedPhone == resource.data.normalizedPhone &&
+        incoming().referenceCode == resource.data.referenceCode &&
+        incoming().consentAccepted == resource.data.consentAccepted &&
+        incoming().createdAt == resource.data.createdAt &&
+        incoming().status in ['confirmed', 'cancelled', 'attended']
+      );
     }
 
     match /settings/{settingId} {
@@ -90,7 +109,11 @@ service cloud.firestore {
     }
 
     match /admins/{adminId} {
-      allow get, list, write: if isAdmin();
+      allow get, list: if isAdmin();
+      // Only the primary superadmin can add or modify admin privileges
+      allow write: if isPrimaryAdmin() &&
+        incoming().email is string &&
+        incoming().role in ['admin', 'superadmin'];
     }
   }
 }

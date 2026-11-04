@@ -48,6 +48,8 @@
         "announcement": { "type": "string", "maxLength": 500 },
         "logoUrl": { "type": "string" },
         "logoUpdatedAt": { "type": "string", "format": "date-time" },
+        "headerLogoUrl": { "type": "string" },
+        "headerLogoUpdatedAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" },
         "updatedBy": { "type": "string", "maxLength": 100 }
       },
