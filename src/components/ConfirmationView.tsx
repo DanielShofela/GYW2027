@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Registration, Language } from '../types/index';
 import { translations } from '../i18n/translations';
-import { CheckCircle, Share2, Copy, Check, Home, Calendar, Sparkles } from 'lucide-react';
+import { CheckCircle, Share2, Copy, Check, Home, Calendar } from 'lucide-react';
 
 interface ConfirmationViewProps {
   registration: Registration;
@@ -37,7 +37,6 @@ export const ConfirmationView: React.FC<ConfirmationViewProps> = ({
       <div className="bg-white rounded-3xl border-3 border-[#111111] p-6 sm:p-9 shadow-[8px_8px_0_0_#111111] text-center relative overflow-hidden">
         {/* Decorative badge */}
         <div className="inline-flex items-center gap-2 bg-[#FFD21F] text-[#111111] font-black text-xs px-3 py-1 rounded-full border-2 border-[#111111] mb-4 uppercase tracking-wider">
-          <Sparkles className="w-4 h-4 text-[#FF6A00]" />
           GLORIOUS YOUTH WORLDWIDE 2027
         </div>
 

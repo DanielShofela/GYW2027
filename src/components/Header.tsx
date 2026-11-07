@@ -1,7 +1,7 @@
 import React from 'react';
 import { Language } from '../types/index';
 import { translations } from '../i18n/translations';
-import { Shield, Sparkles, Globe, UserCheck } from 'lucide-react';
+import { Shield, Globe, UserCheck } from 'lucide-react';
 import { User } from 'firebase/auth';
 
 interface HeaderProps {
@@ -92,7 +92,6 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => onNavigate('register')}
               className="hidden xs:inline-flex items-center gap-1.5 bg-[#FF6A00] hover:bg-[#e05e00] text-white font-bold text-xs sm:text-sm px-3.5 py-1.5 rounded-lg border-2 border-[#111111] shadow-[2px_2px_0_0_#111111] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none cursor-pointer transition-all"
             >
-              <Sparkles className="w-3.5 h-3.5" />
               <span>{lang === 'fr' ? 'S\'inscrire' : 'Register'}</span>
             </button>
           )}

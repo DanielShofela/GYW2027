@@ -7,7 +7,6 @@ import confetti from 'canvas-confetti';
 import {
   CheckCircle2,
   AlertCircle,
-  Sparkles,
   Lock,
   ArrowLeft,
   CalendarCheck2,
@@ -475,10 +474,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
               {isSubmitting ? (
                 <span>{t.submittingButton}</span>
               ) : (
-                <>
-                  <Sparkles className="w-5 h-5" />
-                  <span>{t.submitButton}</span>
-                </>
+                <span>{t.submitButton}</span>
               )}
             </button>
           </div>

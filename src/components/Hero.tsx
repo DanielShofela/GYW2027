@@ -1,7 +1,7 @@
 import React from 'react';
 import { Language, EventSettings } from '../types/index';
 import { translations } from '../i18n/translations';
-import { Sparkles, Calendar, MapPin, Clock, Phone, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Calendar, MapPin, Clock, Phone, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
 
 interface HeroProps {
   lang: Language;
@@ -26,7 +26,6 @@ export const Hero: React.FC<HeroProps> = ({
         {/* Top Badges */}
         <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
           <span className="inline-flex items-center gap-1.5 bg-[#FFD21F] text-[#111111] text-xs sm:text-sm font-black px-3.5 py-1 rounded-full border-2 border-[#111111] shadow-[2px_2px_0_0_#111111] uppercase tracking-wide transform -rotate-1">
-            <Sparkles className="w-4 h-4 text-[#FF6A00]" />
             {t.editionTag}
           </span>
 

@@ -26,30 +26,6 @@ export const ArtBackground: React.FC = () => {
       {/* Bottom orange pulse */}
       <div className="absolute bottom-10 left-10 w-96 h-96 rounded-full bg-[#FF6A00] opacity-25 blur-3xl" />
 
-      {/* Floating vector stickers & starbursts */}
-      <svg
-        className="absolute top-28 right-8 w-12 h-12 text-[#FF6A00] animate-pulse"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-      >
-        <path d="M12 0L14.6 9.4L24 12L14.6 14.6L12 24L9.4 14.6L0 12L9.4 9.4L12 0Z" />
-      </svg>
-
-      <svg
-        className="absolute top-96 left-6 w-8 h-8 text-[#2457FF] opacity-75 transform rotate-45"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-      >
-        <path d="M12 2L15 9L22 12L15 15L12 22L9 15L2 12L9 9L12 2Z" />
-      </svg>
-
-      <svg
-        className="absolute bottom-40 right-12 w-10 h-10 text-[#FFD21F] transform -rotate-12"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-      >
-        <path d="M12 0L15.1 8.9L24 12L15.1 15.1L12 24L8.9 15.1L0 12L8.9 8.9L12 0Z" />
-      </svg>
     </div>
   );
 };
