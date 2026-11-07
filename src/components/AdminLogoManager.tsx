@@ -45,6 +45,7 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
   const [mainRawSvg, setMainRawSvg] = useState<string | null>(null);
   const [mainFileName, setMainFileName] = useState<string | null>(null);
   const [mainFileSizeKb, setMainFileSizeKb] = useState<number | null>(null);
+  const [mainFormatLabel, setMainFormatLabel] = useState<string>('SVG');
 
   // Header logo file input ref & staging state
   const headerFileInputRef = useRef<HTMLInputElement>(null);
@@ -52,93 +53,179 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
   const [headerRawSvg, setHeaderRawSvg] = useState<string | null>(null);
   const [headerFileName, setHeaderFileName] = useState<string | null>(null);
   const [headerFileSizeKb, setHeaderFileSizeKb] = useState<number | null>(null);
+  const [headerFormatLabel, setHeaderFormatLabel] = useState<string>('SVG');
+
+  // Inline delete confirmation states (eliminates window.confirm blocked by iframes)
+  const [confirmDeleteMain, setConfirmDeleteMain] = useState(false);
+  const [confirmDeleteHeader, setConfirmDeleteHeader] = useState(false);
 
   // Status
   const [isUploading, setIsUploading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Generic SVG File processor
-  const processSvgFile = (
+  // Universal image processor supporting SVG, PNG, JPG/JPEG and WebP
+  const processLogoFile = (
     file: File,
-    onSuccess: (dataUri: string, rawSvg: string, name: string, sizeKb: number) => void
+    onSuccess: (dataUri: string, rawSvg: string, name: string, sizeKb: number, formatLabel: string) => void
   ) => {
     setErrorMessage(null);
     setSuccessMessage(null);
 
     const sizeKb = Math.round(file.size / 1024);
-    const reader = new FileReader();
-
-    reader.onload = (event) => {
-      const rawContent = event.target?.result;
-      if (typeof rawContent !== 'string') {
-        setErrorMessage(
-          lang === 'fr'
-            ? 'Impossible de lire le fichier sélectionné.'
-            : 'Could not read the selected file.'
-        );
-        return;
-      }
-
-      const validation = sanitizeAndValidateSvg(rawContent, file.size);
-      if (!validation.isValid) {
-        if (validation.error === 'FILE_TOO_LARGE') {
-          setErrorMessage(
-            lang === 'fr'
-              ? 'Le fichier est trop volumineux. La taille maximale autorisée est de 2 Mo.'
-              : 'File is too large. Maximum allowed size is 2MB.'
-          );
-        } else if (validation.error === 'ACTIVE_CODE_OR_DANGEROUS_ELEMENTS_DETECTED') {
-          setErrorMessage(
-            lang === 'fr'
-              ? 'Sécurité : Le fichier SVG a été rejeté car il contient des scripts ou des éléments actifs non autorisés.'
-              : 'Security: SVG rejected because it contains unauthorized active scripts or code.'
-          );
-        } else {
-          setErrorMessage(
-            lang === 'fr'
-              ? 'Le fichier sélectionné n\'est pas un format SVG valide.'
-              : 'The selected file is not a valid SVG.'
-          );
-        }
-        return;
-      }
-
-      onSuccess(validation.dataUri || '', validation.sanitizedSvg || rawContent, file.name, sizeKb);
-    };
-
-    reader.onerror = () => {
+    if (file.size > 2 * 1024 * 1024) {
       setErrorMessage(
-        lang === 'fr' ? 'Erreur lors de la lecture du fichier.' : 'Error reading file.'
+        lang === 'fr'
+          ? 'Le fichier est trop volumineux. La taille maximale autorisée est de 2 Mo.'
+          : 'File is too large. Maximum allowed size is 2MB.'
       );
-    };
+      return;
+    }
 
-    reader.readAsText(file);
+    const isSvg = file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg');
+    const isRasterImage =
+      file.type.startsWith('image/png') ||
+      file.type.startsWith('image/jpeg') ||
+      file.type.startsWith('image/webp') ||
+      /\.(png|jpe?g|webp)$/i.test(file.name);
+
+    if (isSvg) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const rawContent = event.target?.result;
+        if (typeof rawContent !== 'string') {
+          setErrorMessage(
+            lang === 'fr'
+              ? 'Impossible de lire le fichier sélectionné.'
+              : 'Could not read the selected file.'
+          );
+          return;
+        }
+
+        const validation = sanitizeAndValidateSvg(rawContent, file.size);
+        if (!validation.isValid) {
+          if (validation.error === 'FILE_TOO_LARGE') {
+            setErrorMessage(
+              lang === 'fr'
+                ? 'Le fichier est trop volumineux. La taille maximale autorisée est de 2 Mo.'
+                : 'File is too large. Maximum allowed size is 2MB.'
+            );
+          } else if (validation.error === 'ACTIVE_CODE_OR_DANGEROUS_ELEMENTS_DETECTED') {
+            setErrorMessage(
+              lang === 'fr'
+                ? 'Sécurité : Le fichier SVG a été rejeté car il contient des scripts ou des éléments actifs non autorisés.'
+                : 'Security: SVG rejected because it contains unauthorized active scripts or code.'
+            );
+          } else {
+            setErrorMessage(
+              lang === 'fr'
+                ? 'Le fichier sélectionné n\'est pas un format SVG valide.'
+                : 'The selected file is not a valid SVG.'
+            );
+          }
+          return;
+        }
+
+        onSuccess(validation.dataUri || '', validation.sanitizedSvg || rawContent, file.name, sizeKb, 'SVG Assaini');
+      };
+
+      reader.onerror = () => {
+        setErrorMessage(
+          lang === 'fr' ? 'Erreur lors de la lecture du fichier.' : 'Error reading file.'
+        );
+      };
+
+      reader.readAsText(file);
+    } else if (isRasterImage) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUri = event.target?.result;
+        if (typeof dataUri !== 'string') {
+          setErrorMessage(
+            lang === 'fr'
+              ? 'Impossible de lire l\'image sélectionnée.'
+              : 'Could not read the selected image.'
+          );
+          return;
+        }
+
+        const ext = file.name.split('.').pop()?.toUpperCase() || 'IMAGE';
+        const img = new Image();
+        img.onload = () => {
+          onSuccess(dataUri, '', file.name, sizeKb, `${ext} (${img.naturalWidth}×${img.naturalHeight}px)`);
+        };
+        img.onerror = () => {
+          setErrorMessage(
+            lang === 'fr'
+              ? 'Format d\'image corrompu ou illisible.'
+              : 'Corrupted or unreadable image format.'
+          );
+        };
+        img.src = dataUri;
+      };
+
+      reader.onerror = () => {
+        setErrorMessage(
+          lang === 'fr' ? 'Erreur lors de la lecture de l\'image.' : 'Error reading image.'
+        );
+      };
+
+      reader.readAsDataURL(file);
+    } else {
+      setErrorMessage(
+        lang === 'fr'
+          ? 'Format non pris en charge. Veuillez importer un fichier SVG, PNG, JPG ou WebP (max 2 Mo).'
+          : 'Unsupported format. Please upload an SVG, PNG, JPG, or WebP file (max 2MB).'
+      );
+    }
   };
 
   // Main logo file change
   const handleMainFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    processSvgFile(file, (dataUri, rawSvg, name, sizeKb) => {
+    processLogoFile(file, (dataUri, rawSvg, name, sizeKb, formatLabel) => {
       setMainPreviewUri(dataUri);
       setMainRawSvg(rawSvg);
       setMainFileName(name);
       setMainFileSizeKb(sizeKb);
+      setMainFormatLabel(formatLabel);
+      setConfirmDeleteMain(false);
     });
+    e.target.value = '';
   };
 
   // Header logo file change
   const handleHeaderFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    processSvgFile(file, (dataUri, rawSvg, name, sizeKb) => {
+    processLogoFile(file, (dataUri, rawSvg, name, sizeKb, formatLabel) => {
       setHeaderPreviewUri(dataUri);
       setHeaderRawSvg(rawSvg);
       setHeaderFileName(name);
       setHeaderFileSizeKb(sizeKb);
+      setHeaderFormatLabel(formatLabel);
+      setConfirmDeleteHeader(false);
     });
+    e.target.value = '';
   };
+
+  // Active resolved logos (checking direct URL or chunked localStorage hydration)
+  const activeMainLogo =
+    settings.logoUrl ||
+    (settings.logoAsset?.assetId && typeof window !== 'undefined'
+      ? localStorage.getItem(`gyw_asset_${settings.logoAsset.assetId}`) || ''
+      : '') ||
+    '';
+  const hasActiveMainLogo = Boolean(activeMainLogo || settings.logoAsset?.assetId);
+
+  const activeHeaderLogo =
+    settings.headerLogoUrl ||
+    (settings.headerLogoAsset?.assetId && typeof window !== 'undefined'
+      ? localStorage.getItem(`gyw_asset_${settings.headerLogoAsset.assetId}`) || ''
+      : '') ||
+    '';
+  const hasActiveHeaderLogo = Boolean(activeHeaderLogo || settings.headerLogoAsset?.assetId);
 
   // 1. Save Main Logo
   const handleSaveMainLogo = async () => {
@@ -148,12 +235,7 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
     setSuccessMessage(null);
 
     try {
-      const finalUrl = await updateOfficialLogo(mainPreviewUri, mainRawSvg || undefined, currentUser);
-      const updatedSettings: EventSettings = {
-        ...settings,
-        logoUrl: finalUrl,
-        logoUpdatedAt: new Date().toISOString(),
-      };
+      const updatedSettings = await updateOfficialLogo(mainPreviewUri, mainRawSvg || undefined, currentUser);
       onSettingsUpdated(updatedSettings);
 
       setSuccessMessage(
@@ -169,42 +251,35 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
       setErrorMessage(
         err.message === 'NOT_AUTHORIZED'
           ? 'Action non autorisée. Votre compte administrateur doit être vérifié.'
-          : 'Erreur lors de l\'enregistrement du logo principal.'
+          : `Erreur lors de l'enregistrement du logo principal : ${err?.message || 'Erreur réseau ou base de données.'}`
       );
     } finally {
       setIsUploading(false);
     }
   };
 
-  // 2. Remove Main Logo
+  // 2. Remove Main Logo (using inline confirmation, immune to iframe window.confirm blocking)
   const handleRemoveMainLogo = async () => {
-    if (!settings.logoUrl) return;
-    if (
-      !window.confirm(
-        lang === 'fr'
-          ? 'Supprimer le logo principal ? La page d\'accueil affichera le titre de secours.'
-          : 'Remove the main logo?'
-      )
-    ) {
-      return;
-    }
-
+    if (!hasActiveMainLogo) return;
     setIsUploading(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
     try {
-      await removeOfficialLogo(currentUser);
-      onSettingsUpdated({
-        ...settings,
-        logoUrl: '',
-        logoUpdatedAt: new Date().toISOString(),
-      });
+      const updatedSettings = await removeOfficialLogo(currentUser);
+      onSettingsUpdated(updatedSettings);
+      setConfirmDeleteMain(false);
       setSuccessMessage(
         lang === 'fr'
-          ? 'Logo principal retiré. La page d\'accueil utilise le titre de secours.'
-          : 'Main logo removed.'
+          ? 'Logo principal retiré avec succès. La page d\'accueil affiche le titre officiel de secours.'
+          : 'Main logo removed successfully.'
       );
     } catch (err: any) {
       console.error('Error removing main logo:', err);
-      setErrorMessage('Erreur lors de la suppression du logo principal.');
+      setErrorMessage(
+        lang === 'fr'
+          ? `Erreur lors de la suppression du logo principal : ${err?.message || 'Erreur inconnue.'}`
+          : `Error removing main logo: ${err?.message || 'Unknown error.'}`
+      );
     } finally {
       setIsUploading(false);
     }
@@ -218,12 +293,7 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
     setSuccessMessage(null);
 
     try {
-      const finalUrl = await updateHeaderLogo(headerPreviewUri, headerRawSvg || undefined, currentUser);
-      const updatedSettings: EventSettings = {
-        ...settings,
-        headerLogoUrl: finalUrl,
-        headerLogoUpdatedAt: new Date().toISOString(),
-      };
+      const updatedSettings = await updateHeaderLogo(headerPreviewUri, headerRawSvg || undefined, currentUser);
       onSettingsUpdated(updatedSettings);
 
       setSuccessMessage(
@@ -239,42 +309,35 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
       setErrorMessage(
         err.message === 'NOT_AUTHORIZED'
           ? 'Action non autorisée. Votre compte administrateur doit être vérifié.'
-          : 'Erreur lors de l\'enregistrement du logo du header.'
+          : `Erreur lors de l'enregistrement du logo du header : ${err?.message || 'Erreur réseau ou base de données.'}`
       );
     } finally {
       setIsUploading(false);
     }
   };
 
-  // 4. Remove Header Logo
+  // 4. Remove Header Logo (using inline confirmation, immune to iframe window.confirm blocking)
   const handleRemoveHeaderLogo = async () => {
-    if (!settings.headerLogoUrl) return;
-    if (
-      !window.confirm(
-        lang === 'fr'
-          ? 'Supprimer le logo du header ? Le header réutilisera le badge officiel GYW.'
-          : 'Remove header logo?'
-      )
-    ) {
-      return;
-    }
-
+    if (!hasActiveHeaderLogo) return;
     setIsUploading(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
     try {
-      await removeHeaderLogo(currentUser);
-      onSettingsUpdated({
-        ...settings,
-        headerLogoUrl: '',
-        headerLogoUpdatedAt: new Date().toISOString(),
-      });
+      const updatedSettings = await removeHeaderLogo(currentUser);
+      onSettingsUpdated(updatedSettings);
+      setConfirmDeleteHeader(false);
       setSuccessMessage(
         lang === 'fr'
-          ? 'Logo du header retiré. Le badge par défaut GYW est réactivé.'
-          : 'Header logo removed. Default GYW emblem is restored.'
+          ? 'Logo du header retiré avec succès. Le badge officiel GYW par défaut est réactivé.'
+          : 'Header logo removed successfully. Default GYW badge restored.'
       );
     } catch (err: any) {
       console.error('Error removing header logo:', err);
-      setErrorMessage('Erreur lors de la suppression du logo du header.');
+      setErrorMessage(
+        lang === 'fr'
+          ? `Erreur lors de la suppression du logo du header : ${err?.message || 'Erreur inconnue.'}`
+          : `Error removing header logo: ${err?.message || 'Unknown error.'}`
+      );
     } finally {
       setIsUploading(false);
     }
@@ -282,7 +345,7 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
 
   // 5. Clone Main Logo to Header Logo
   const handleCopyMainToHeader = async () => {
-    if (!settings.logoUrl) {
+    if (!hasActiveMainLogo) {
       setErrorMessage(
         lang === 'fr'
           ? 'Aucun logo principal n\'est actuellement enregistré à copier.'
@@ -296,12 +359,8 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
     setSuccessMessage(null);
 
     try {
-      const clonedUrl = await useMainLogoAsHeaderLogo(currentUser);
-      onSettingsUpdated({
-        ...settings,
-        headerLogoUrl: clonedUrl,
-        headerLogoUpdatedAt: new Date().toISOString(),
-      });
+      const updatedSettings = await useMainLogoAsHeaderLogo(currentUser);
+      onSettingsUpdated(updatedSettings);
       setSuccessMessage(
         lang === 'fr'
           ? 'Le logo principal a été copié et configuré pour le header avec succès !'
@@ -327,7 +386,7 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
           Gestion des Logos Officiels
         </h2>
         <p className="text-xs sm:text-sm text-gray-600 mt-1 font-medium leading-relaxed">
-          Configurez indépendamment le logo principal de la page d'accueil et le logo de la barre de navigation. Les fichiers SVG transparents sont automatiquement assainis et protégés.
+          Configurez indépendamment le logo principal de la page d'accueil et le logo de la barre de navigation. Formats acceptés : SVG, PNG transparent, JPG ou WebP (max 2 Mo). Les fichiers sont vérifiés, assainis et protégés.
         </p>
       </div>
 
@@ -365,14 +424,14 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
         type="file"
         ref={mainFileInputRef}
         onChange={handleMainFileChange}
-        accept=".svg,image/svg+xml"
+        accept="image/svg+xml,.svg,image/png,.png,image/jpeg,.jpg,.jpeg,image/webp,.webp"
         className="hidden"
       />
       <input
         type="file"
         ref={headerFileInputRef}
         onChange={handleHeaderFileChange}
-        accept=".svg,image/svg+xml"
+        accept="image/svg+xml,.svg,image/png,.png,image/jpeg,.jpg,.jpeg,image/webp,.webp"
         className="hidden"
       />
 
@@ -404,14 +463,14 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
                 <Eye className="w-4 h-4 text-[#FF6A00]" />
                 Logo Principal Actuellement en Ligne
               </span>
-              {settings.logoUrl && (
+              {hasActiveMainLogo && (
                 <span className="text-[10px] font-black text-green-800 bg-green-100 px-2.5 py-0.5 rounded-full border border-green-300">
                   Actif sur la page d'accueil
                 </span>
               )}
             </div>
 
-            {settings.logoUrl ? (
+            {hasActiveMainLogo ? (
               <div className="space-y-3">
                 {/* Checkerboard transparency preview container */}
                 <div
@@ -425,7 +484,7 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
                   }}
                 >
                   <img
-                    src={settings.logoUrl}
+                    src={activeMainLogo}
                     alt="Logo principal actif"
                     className="max-h-44 w-auto max-w-full object-contain"
                   />
@@ -453,15 +512,43 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
                       <span>Remplacer le logo</span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={handleRemoveMainLogo}
-                      disabled={isUploading}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-xl border border-red-300 cursor-pointer"
-                      title="Supprimer le logo principal"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {confirmDeleteMain ? (
+                      <div className="flex items-center gap-1.5 bg-red-50 p-1.5 rounded-xl border-2 border-red-400 animate-in fade-in">
+                        <span className="text-[11px] font-bold text-red-900 hidden sm:inline">
+                          Confirmer la suppression ?
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleRemoveMainLogo}
+                          disabled={isUploading}
+                          className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white font-black text-xs rounded-lg cursor-pointer transition-colors shadow-sm"
+                        >
+                          {isUploading ? '...' : 'Supprimer'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteMain(false)}
+                          disabled={isUploading}
+                          className="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs rounded-lg cursor-pointer"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setErrorMessage(null);
+                          setConfirmDeleteMain(true);
+                        }}
+                        disabled={isUploading}
+                        className="inline-flex items-center gap-1.5 p-2 px-3 text-red-600 hover:bg-red-50 rounded-xl border-2 border-red-300 hover:border-red-500 cursor-pointer transition-colors"
+                        title="Supprimer le logo principal"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span className="text-xs font-bold">Supprimer</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -487,7 +574,7 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
                   className="inline-flex items-center gap-2 bg-[#FF6A00] hover:bg-[#e05e00] text-white font-black text-xs sm:text-sm px-5 py-2.5 rounded-xl border-2 border-[#111111] shadow-[3px_3px_0_0_#111111] cursor-pointer active:translate-x-0.5 active:translate-y-0.5 transition-all"
                 >
                   <Upload className="w-4 h-4" />
-                  <span>Importer un logo SVG</span>
+                  <span>Importer un logo (SVG, PNG, JPG, WebP)</span>
                 </button>
               </div>
             )}
@@ -525,7 +612,7 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
 
               <div className="flex items-center gap-1.5 text-xs text-green-700 font-bold">
                 <ShieldCheck className="w-4 h-4 shrink-0" />
-                <span>Format SVG assaini avec DOMPurify • Zéro script malveillant.</span>
+                <span>Format {mainFormatLabel} vérifié • Zéro script malveillant.</span>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2 pt-2">
@@ -569,7 +656,7 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
                 <Eye className="w-4 h-4 text-[#2457FF]" />
                 Logo du Header Actuellement en Ligne
               </span>
-              {settings.headerLogoUrl ? (
+              {hasActiveHeaderLogo ? (
                 <span className="text-[10px] font-black text-blue-800 bg-blue-100 px-2.5 py-0.5 rounded-full border border-blue-300">
                   Logo personnalisé actif
                 </span>
@@ -580,7 +667,7 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
               )}
             </div>
 
-            {settings.headerLogoUrl ? (
+            {hasActiveHeaderLogo ? (
               <div className="space-y-3">
                 {/* Live simulation within header navbar */}
                 <div className="p-4 rounded-xl border-2 border-[#111111] bg-[#FFF3DD] space-y-1">
@@ -589,7 +676,7 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
                   </div>
                   <div className="flex items-center gap-2.5 py-2 px-3 rounded-lg border border-[#111111]/20 bg-white/50">
                     <img
-                      src={settings.headerLogoUrl}
+                      src={activeHeaderLogo}
                       alt="Logo header actif"
                       className="h-10 w-auto max-w-[150px] object-contain"
                     />
@@ -626,15 +713,43 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
                       <span>Remplacer le logo</span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={handleRemoveHeaderLogo}
-                      disabled={isUploading}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-xl border border-red-300 cursor-pointer"
-                      title="Supprimer le logo du header (restaurer l'icône GYW)"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {confirmDeleteHeader ? (
+                      <div className="flex items-center gap-1.5 bg-red-50 p-1.5 rounded-xl border-2 border-red-400 animate-in fade-in">
+                        <span className="text-[11px] font-bold text-red-900 hidden sm:inline">
+                          Confirmer la suppression ?
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleRemoveHeaderLogo}
+                          disabled={isUploading}
+                          className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white font-black text-xs rounded-lg cursor-pointer transition-colors shadow-sm"
+                        >
+                          {isUploading ? '...' : 'Supprimer'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteHeader(false)}
+                          disabled={isUploading}
+                          className="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs rounded-lg cursor-pointer"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setErrorMessage(null);
+                          setConfirmDeleteHeader(true);
+                        }}
+                        disabled={isUploading}
+                        className="inline-flex items-center gap-1.5 p-2 px-3 text-red-600 hover:bg-red-50 rounded-xl border-2 border-red-300 hover:border-red-500 cursor-pointer transition-colors"
+                        title="Supprimer le logo du header (restaurer le badge par défaut)"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span className="text-xs font-bold">Supprimer</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -662,11 +777,11 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
                     className="inline-flex items-center gap-2 bg-[#2457FF] hover:bg-[#1a44d1] text-white font-black text-xs sm:text-sm px-4 py-2.5 rounded-xl border-2 border-[#111111] shadow-[3px_3px_0_0_#111111] cursor-pointer active:translate-x-0.5 active:translate-y-0.5 transition-all"
                   >
                     <Upload className="w-4 h-4" />
-                    <span>Importer un SVG pour le header</span>
+                    <span>Importer un logo (SVG, PNG, JPG, WebP)</span>
                   </button>
 
                   {/* Option to clone main logo */}
-                  {settings.logoUrl && (
+                  {hasActiveMainLogo && (
                     <button
                       type="button"
                       onClick={handleCopyMainToHeader}
@@ -720,7 +835,7 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
 
               <div className="flex items-center gap-1.5 text-xs text-green-700 font-bold">
                 <ShieldCheck className="w-4 h-4 shrink-0" />
-                <span>Format SVG assaini avec DOMPurify • Zéro script malveillant.</span>
+                <span>Format {headerFormatLabel} vérifié • Zéro script malveillant.</span>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2 pt-2">
@@ -756,10 +871,10 @@ export const AdminLogoManager: React.FC<AdminLogoManagerProps> = ({
       <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 text-xs text-gray-600 space-y-1.5">
         <div className="font-black text-[#111111] uppercase flex items-center gap-1.5">
           <ShieldCheck className="w-4 h-4 text-[#5B2EFF]" />
-          <span>Normes de sécurité SVG & Invalidation de cache</span>
+          <span>Normes de sécurité & Invalidation de cache</span>
         </div>
         <p className="leading-relaxed">
-          Chaque fichier SVG importé (principal ou header) est soumis à une inspection rigoureuse : vérification du format, limite stricte de 2 Mo, assainissement complet avec DOMPurify et élimination systématique de tout script, événement JavaScript ou ressource externe. Lors de la mise à jour, un timestamp de versioning (<code className="font-mono bg-gray-200 px-1 py-0.5 rounded">?v=timestamp</code>) est appliqué pour garantir que les visiteurs voient immédiatement la dernière version sans cache résiduel.
+          Chaque fichier importé (SVG, PNG, JPG, WebP) est soumis à une inspection rigoureuse : vérification du format et des dimensions, limite stricte de 2 Mo, assainissement automatique avec DOMPurify pour les SVG (élimination de tout script JavaScript ou ressource externe non sécurisée). Lors de la mise à jour, un timestamp de versioning (<code className="font-mono bg-gray-200 px-1 py-0.5 rounded">?v=timestamp</code>) est appliqué pour garantir que les visiteurs voient immédiatement la dernière version sans cache résiduel.
         </p>
       </div>
     </div>

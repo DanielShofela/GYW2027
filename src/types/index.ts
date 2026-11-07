@@ -28,6 +28,14 @@ export interface Registration {
   updatedAt?: string;
 }
 
+export interface LogoAssetReference {
+  assetId: string;
+  totalChunks: number;
+  totalSize: number;
+  format: string;
+  updatedAt: string;
+}
+
 export interface EventSettings {
   location: string;
   schedules: string;
@@ -40,6 +48,8 @@ export interface EventSettings {
   logoUpdatedAt?: string;
   headerLogoUrl?: string;
   headerLogoUpdatedAt?: string;
+  logoAsset?: LogoAssetReference;
+  headerLogoAsset?: LogoAssetReference;
   updatedAt: string;
   updatedBy?: string;
 }

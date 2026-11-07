@@ -190,7 +190,12 @@ export default function App() {
         currentUser={currentUser}
         isAdmin={isAdmin}
         onOpenAdminLogin={() => navigateTo('admin')}
-        headerLogoUrl={settings.headerLogoUrl}
+        headerLogoUrl={
+          settings.headerLogoUrl ||
+          (settings.headerLogoAsset?.assetId && typeof window !== 'undefined'
+            ? localStorage.getItem(`gyw_asset_${settings.headerLogoAsset.assetId}`) || undefined
+            : undefined)
+        }
       />
 
       {/* Main Content Area */}

@@ -73,9 +73,27 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     setErrorMessage(null);
     const errors: Record<string, string> = {};
 
-    if (!lastName.trim()) errors.lastName = t.errorRequired;
-    if (!firstName.trim()) errors.firstName = t.errorRequired;
-    if (!city.trim()) errors.city = t.errorRequired;
+    const trimmedLast = lastName.trim();
+    const trimmedFirst = firstName.trim();
+    const trimmedCity = city.trim();
+
+    if (!trimmedLast) {
+      errors.lastName = t.errorRequired;
+    } else if (trimmedLast.length < 2) {
+      errors.lastName = t.errorMinLength;
+    }
+
+    if (!trimmedFirst) {
+      errors.firstName = t.errorRequired;
+    } else if (trimmedFirst.length < 2) {
+      errors.firstName = t.errorMinLength;
+    }
+
+    if (!trimmedCity) {
+      errors.city = t.errorRequired;
+    } else if (trimmedCity.length < 2) {
+      errors.city = t.errorMinLength;
+    }
 
     // Phone validation
     const phoneCheck = normalizePhoneNumber(phoneRaw);
@@ -100,11 +118,11 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
 
     try {
       const result = await submitRegistration({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+        firstName: trimmedFirst,
+        lastName: trimmedLast,
         whatsappPhone: phoneCheck.displayFormatted,
         normalizedPhone: phoneCheck.normalized,
-        city: city.trim(),
+        city: trimmedCity,
         church: church.trim() || undefined,
         ageCategory: ageCategory !== 'not_specified' ? ageCategory : undefined,
         attendanceDays,
@@ -126,13 +144,14 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
       onSuccess(result.registration);
     } catch (err: any) {
       console.error('Registration submission error:', err);
-      if (
-        err.message === 'ALREADY_REGISTERED' ||
-        err.message === 'REGISTRATION_FAILED_OR_DUPLICATE'
-      ) {
+      if (err.message === 'ALREADY_REGISTERED') {
         setErrorMessage(t.errorAlreadyRegistered);
       } else if (err.message === 'REGISTRATIONS_CLOSED') {
-        setErrorMessage(t.registrationsClosedTitle);
+        setErrorMessage(t.errorRegistrationsClosed || t.registrationsClosedTitle);
+      } else if (err.message === 'NETWORK_ERROR') {
+        setErrorMessage(t.errorNetwork || t.errorGeneric);
+      } else if (err.message === 'SUBMISSION_REJECTED') {
+        setErrorMessage(t.errorSubmissionRejected || t.errorGeneric);
       } else {
         setErrorMessage(t.errorGeneric);
       }

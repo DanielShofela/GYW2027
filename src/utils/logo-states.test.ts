@@ -78,3 +78,45 @@ test('Settings immutability: updating headerLogoUrl preserves main logo and exis
   assert.equal(updated.registrationsOpen, true);
   assert.equal(updated.location, 'Abidjan');
 });
+
+test('Multi-format logo support: accepts and resolves PNG, JPEG and WebP logos', () => {
+  const pngLogo = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  const webpLogo = 'data:image/webp;base64,UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==';
+  const jpgLogo = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=';
+
+  assert.equal(resolveHeroLogoState(pngLogo, false), 'READY');
+  assert.equal(resolveHeroLogoState(webpLogo, false), 'READY');
+  assert.equal(resolveHeroLogoState(jpgLogo, false), 'READY');
+
+  assert.equal(resolveHeaderLogoDisplay(pngLogo).type, 'custom_svg');
+  assert.equal(resolveHeaderLogoDisplay(webpLogo).type, 'custom_svg');
+  assert.equal(resolveHeaderLogoDisplay(jpgLogo).type, 'custom_svg');
+});
+
+test('Logo removal: clearing logo returns state to default cleanly without affecting event parameters', () => {
+  const currentSettings: EventSettings = {
+    ...BASE_SETTINGS,
+    logoUrl: 'data:image/png;base64,dummy',
+    headerLogoUrl: 'data:image/svg+xml;base64,dummy',
+  };
+
+  // Simulating removal of main logo
+  const afterMainRemoval: EventSettings = {
+    ...currentSettings,
+    logoUrl: '',
+    logoAsset: undefined,
+  };
+  assert.equal(resolveHeroLogoState(afterMainRemoval.logoUrl, false), 'EMPTY');
+  assert.equal(resolveHeaderLogoDisplay(afterMainRemoval.headerLogoUrl).type, 'custom_svg');
+  assert.equal(afterMainRemoval.location, 'Abidjan');
+
+  // Simulating removal of header logo
+  const afterHeaderRemoval: EventSettings = {
+    ...afterMainRemoval,
+    headerLogoUrl: '',
+    headerLogoAsset: undefined,
+  };
+  assert.equal(resolveHeaderLogoDisplay(afterHeaderRemoval.headerLogoUrl).type, 'default_badge');
+  assert.equal(afterHeaderRemoval.registrationsOpen, true);
+});
+

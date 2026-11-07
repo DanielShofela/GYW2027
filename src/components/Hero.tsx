@@ -47,36 +47,50 @@ export const Hero: React.FC<HeroProps> = ({
           2. LOADING: Settings are fetching from Firebase and logo is not yet cached. Reserve layout space without jarring warning text.
           3. EMPTY: Firebase confirmed no official logo is configured. Show clean fallback title.
         */}
-        {settings.logoUrl ? (
-          /* STATE 1: READY */
-          <div className="my-6 sm:my-8 flex justify-center items-center px-2 min-h-[140px] sm:min-h-[180px] md:min-h-[220px]">
-            <img
-              src={settings.logoUrl}
-              alt="Logo officiel GLORIOUS YOUTH WORLDWIDE 2027"
-              loading="eager"
-              decoding="async"
-              className="w-full max-w-[280px] xs:max-w-[340px] sm:max-w-md md:max-w-lg max-h-56 sm:max-h-72 object-contain mx-auto select-none pointer-events-none transition-opacity duration-300"
-            />
-          </div>
-        ) : isSettingsLoading ? (
-          /* STATE 2: LOADING - Reserved space with calm placeholder, NO temporary warning text */
-          <div
-            className="my-6 sm:my-8 flex justify-center items-center px-2 min-h-[140px] sm:min-h-[180px] md:min-h-[220px]"
-            aria-busy="true"
-            aria-label={lang === 'fr' ? 'Chargement de l\'identité visuelle...' : 'Loading visual identity...'}
-          >
-            <div className="w-full max-w-[280px] xs:max-w-[340px] sm:max-w-md md:max-w-lg h-36 sm:h-48 md:h-56 rounded-2xl bg-[#FFF3DD]/60 border-2 border-dashed border-[#111111]/20 animate-pulse flex items-center justify-center">
-              <div className="w-8 h-8 rounded-full border-3 border-[#FF6A00]/30 border-t-[#FF6A00] animate-spin" />
+        {(() => {
+          const effectiveLogo =
+            settings.logoUrl ||
+            (settings.logoAsset?.assetId && typeof window !== 'undefined'
+              ? localStorage.getItem(`gyw_asset_${settings.logoAsset.assetId}`) || ''
+              : '') ||
+            '';
+
+          if (effectiveLogo) {
+            return (
+              <div className="my-6 sm:my-8 flex justify-center items-center px-2 min-h-[140px] sm:min-h-[180px] md:min-h-[220px]">
+                <img
+                  src={effectiveLogo}
+                  alt="Logo officiel GLORIOUS YOUTH WORLDWIDE 2027"
+                  loading="eager"
+                  decoding="async"
+                  className="w-full max-w-[280px] xs:max-w-[340px] sm:max-w-md md:max-w-lg max-h-56 sm:max-h-72 object-contain mx-auto select-none pointer-events-none transition-opacity duration-300"
+                />
+              </div>
+            );
+          }
+
+          if (isSettingsLoading) {
+            return (
+              <div
+                className="my-6 sm:my-8 flex justify-center items-center px-2 min-h-[140px] sm:min-h-[180px] md:min-h-[220px]"
+                aria-busy="true"
+                aria-label={lang === 'fr' ? 'Chargement de l\'identité visuelle...' : 'Loading visual identity...'}
+              >
+                <div className="w-full max-w-[280px] xs:max-w-[340px] sm:max-w-md md:max-w-lg h-36 sm:h-48 md:h-56 rounded-2xl bg-[#FFF3DD]/60 border-2 border-dashed border-[#111111]/20 animate-pulse flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full border-3 border-[#FF6A00]/30 border-t-[#FF6A00] animate-spin" />
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div className="my-6 max-w-lg mx-auto py-5 px-6 rounded-2xl border-2 border-dashed border-[#111111]/30 bg-white/40 text-center">
+              <h1 className="text-2xl sm:text-4xl font-black text-[#111111] uppercase tracking-tight font-['Space_Grotesk'] leading-tight">
+                GLORIOUS YOUTH <span className="text-[#FF6A00]">WORLDWIDE</span> 2027
+              </h1>
             </div>
-          </div>
-        ) : (
-          /* STATE 3: EMPTY - Confirmed absence of logo after Firebase resolution */
-          <div className="my-6 max-w-lg mx-auto py-5 px-6 rounded-2xl border-2 border-dashed border-[#111111]/30 bg-white/40 text-center">
-            <h1 className="text-2xl sm:text-4xl font-black text-[#111111] uppercase tracking-tight font-['Space_Grotesk'] leading-tight">
-              GLORIOUS YOUTH <span className="text-[#FF6A00]">WORLDWIDE</span> 2027
-            </h1>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Official Theme Card */}
         <div className="my-6 max-w-2xl mx-auto bg-white rounded-2xl border-3 border-[#111111] p-5 sm:p-7 shadow-[5px_5px_0_0_#111111] relative text-left sm:text-center">
@@ -93,7 +107,12 @@ export const Hero: React.FC<HeroProps> = ({
 
         {/* Primary Call-To-Action Button */}
         <div className="mt-7 flex flex-col items-center gap-3">
-          {settings.registrationsOpen ? (
+          {isSettingsLoading ? (
+            <div className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#FFF3DD] text-[#111111] text-sm font-bold px-8 py-4 rounded-2xl border-2 border-dashed border-[#111111]/30 animate-pulse">
+              <div className="w-4 h-4 rounded-full border-2 border-[#FF6A00]/40 border-t-[#FF6A00] animate-spin" />
+              <span>{lang === 'fr' ? 'Vérification du statut...' : 'Checking registration status...'}</span>
+            </div>
+          ) : settings.registrationsOpen ? (
             <button
               onClick={onGoToRegister}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-[#FF6A00] hover:bg-[#e05e00] text-white text-lg sm:text-xl font-black px-8 py-4 rounded-2xl border-3 border-[#111111] shadow-[5px_5px_0_0_#111111] active:translate-x-1 active:translate-y-1 active:shadow-[1px_1px_0_0_#111111] cursor-pointer transition-all transform hover:-translate-y-0.5"

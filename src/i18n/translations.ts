@@ -72,6 +72,12 @@ export const translations = {
     errorConsentRequired: 'Le consentement pour l\'organisation est obligatoire pour s\'inscrire.',
     errorAlreadyRegistered:
       'Ce numéro WhatsApp est déjà inscrit pour GLORIOUS YOUTH WORLDWIDE 2027 ! Une même personne ne peut pas s\'inscrire deux fois.',
+    errorNetwork: 'Erreur de connexion Internet. Veuillez vérifier votre réseau et réessayer.',
+    errorSubmissionRejected:
+      'Impossible de valider votre inscription pour le moment. Veuillez vérifier les informations saisies ou réessayer dans quelques instants.',
+    errorRegistrationsClosed:
+      'Les inscriptions sont actuellement fermées. Aucune nouvelle inscription ne peut être acceptée pour le moment.',
+    errorMinLength: 'Ce champ doit contenir au moins 2 caractères.',
     errorGeneric:
       'Une erreur est survenue lors de l\'enregistrement. Vérifie ta connexion Internet et réessaie.',
 
@@ -232,6 +238,12 @@ export const translations = {
     errorConsentRequired: 'Consent for event logistics is required to register.',
     errorAlreadyRegistered:
       'This WhatsApp number is already registered for GLORIOUS YOUTH WORLDWIDE 2027! The same person cannot register multiple times.',
+    errorNetwork: 'Internet connection error. Please check your network and try again.',
+    errorSubmissionRejected:
+      'Unable to validate your registration at this time. Please verify the information entered or try again in a few moments.',
+    errorRegistrationsClosed:
+      'Registrations are currently closed. No new registrations can be accepted at this time.',
+    errorMinLength: 'This field must contain at least 2 characters.',
     errorGeneric: 'An error occurred during submission. Please check your connection and try again.',
 
     // Confirmation

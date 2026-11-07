@@ -21,6 +21,8 @@ test('Security Verification: Unauthenticated visitor CANNOT read registrations',
     );
   } finally {
     const { terminate } = await import('firebase/firestore');
+    const { deleteApp } = await import('firebase/app');
     await terminate(db);
+    await deleteApp(app);
   }
 });

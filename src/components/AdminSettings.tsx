@@ -54,8 +54,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
     setSuccess(false);
 
     try {
-      const updatedPayload: EventSettings = {
-        ...settings,
+      const patch: Partial<EventSettings> = {
         location: location.trim(),
         schedules: schedules.trim(),
         contactPhone: contactPhone.trim(),
@@ -63,10 +62,9 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
         announcement: announcement.trim(),
         whatsappChannelUrl: whatsappChannelUrl.trim(),
         registrationsOpen,
-        updatedAt: new Date().toISOString(),
       };
 
-      const savedResult = await updateEventSettings(updatedPayload, currentUser);
+      const savedResult = await updateEventSettings(patch, currentUser);
       onSettingsUpdated(savedResult);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3500);
