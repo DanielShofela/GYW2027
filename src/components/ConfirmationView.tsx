@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Registration, Language } from '../types/index';
 import { translations } from '../i18n/translations';
+import { buildWhatsAppShareUrl } from '../utils/share';
 import { CheckCircle, Share2, Copy, Check, Home, Calendar } from 'lucide-react';
 
 interface ConfirmationViewProps {
@@ -25,11 +26,7 @@ export const ConfirmationView: React.FC<ConfirmationViewProps> = ({
     }
   };
 
-  const handleShareWhatsApp = () => {
-    const shareUrl = 'https://gy2027.netlify.app/';
-    const text = encodeURIComponent(`${t.whatsappShareText} ${shareUrl}`);
-    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
-  };
+  const whatsappShareUrl = buildWhatsAppShareUrl(t.whatsappShareText);
 
   return (
     <div className="max-w-xl mx-auto px-4 py-8">
@@ -94,13 +91,15 @@ export const ConfirmationView: React.FC<ConfirmationViewProps> = ({
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 mt-6">
-          <button
-            onClick={handleShareWhatsApp}
+          <a
+            href={whatsappShareUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex-1 inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba59] text-white font-extrabold text-sm py-3.5 px-4 rounded-xl border-2 border-[#111111] shadow-[3px_3px_0_0_#111111] cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
           >
             <Share2 className="w-4 h-4" />
             <span>{t.shareOnWhatsapp}</span>
-          </button>
+          </a>
 
           <button
             onClick={onGoHome}
