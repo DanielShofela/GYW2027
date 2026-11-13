@@ -1,1 +1,138 @@
 @import "tailwindcss";
+
+/* ========================================================
+   3D Rotating Prism Button (Style Cube 3D Rotatif)
+   ======================================================== */
+.btn-3d-prism-wrapper {
+  perspective: 1000px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.btn-3d-prism {
+  position: relative;
+  width: 260px;
+  height: 52px;
+  transition: transform 2s cubic-bezier(0.2, 0.85, 0.3, 1);
+  transform-style: preserve-3d;
+  transform: perspective(1000px) rotateX(0deg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+  outline: none;
+  user-select: none;
+  text-decoration: none;
+}
+
+@media (min-width: 640px) {
+  .btn-3d-prism {
+    width: 300px;
+    height: 56px;
+  }
+}
+
+.btn-3d-prism:hover,
+.btn-3d-prism:focus-visible {
+  transform: perspective(1000px) rotateX(360deg);
+}
+
+.btn-3d-prism span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  background: rgba(255, 255, 255, 0.92);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  text-transform: uppercase;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  transition: 0.5s;
+  border: 2px solid #000;
+  box-sizing: border-box;
+  box-shadow: inset 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+@media (min-width: 640px) {
+  .btn-3d-prism span {
+    font-size: 20px;
+  }
+}
+
+.btn-3d-prism:hover span,
+.btn-3d-prism:focus-visible span {
+  color: #fff;
+  background: rgba(3, 169, 244, 0.85);
+}
+
+.btn-3d-prism span:nth-child(1) {
+  transform: rotateX(360deg) translateZ(26px);
+}
+.btn-3d-prism span:nth-child(2) {
+  transform: rotateX(270deg) translateZ(26px);
+}
+.btn-3d-prism span:nth-child(3) {
+  transform: rotateX(180deg) translateZ(26px);
+}
+.btn-3d-prism span:nth-child(4) {
+  transform: rotateX(90deg) translateZ(26px);
+}
+
+@media (min-width: 640px) {
+  .btn-3d-prism span:nth-child(1) {
+    transform: rotateX(360deg) translateZ(28px);
+  }
+  .btn-3d-prism span:nth-child(2) {
+    transform: rotateX(270deg) translateZ(28px);
+  }
+  .btn-3d-prism span:nth-child(3) {
+    transform: rotateX(180deg) translateZ(28px);
+  }
+  .btn-3d-prism span:nth-child(4) {
+    transform: rotateX(90deg) translateZ(28px);
+  }
+}
+
+/* Wide variant for longer text like "CONFIRMER MON INSCRIPTION" */
+.btn-3d-prism.btn-3d-prism-wide {
+  width: 100%;
+  max-width: 360px;
+  height: 54px;
+}
+.btn-3d-prism.btn-3d-prism-wide span {
+  font-size: 14px;
+  letter-spacing: 1.5px;
+  padding: 0 10px;
+}
+@media (min-width: 640px) {
+  .btn-3d-prism.btn-3d-prism-wide {
+    max-width: 400px;
+    height: 58px;
+  }
+  .btn-3d-prism.btn-3d-prism-wide span {
+    font-size: 15px;
+    letter-spacing: 2px;
+  }
+  .btn-3d-prism.btn-3d-prism-wide span:nth-child(1) {
+    transform: rotateX(360deg) translateZ(29px);
+  }
+  .btn-3d-prism.btn-3d-prism-wide span:nth-child(2) {
+    transform: rotateX(270deg) translateZ(29px);
+  }
+  .btn-3d-prism.btn-3d-prism-wide span:nth-child(3) {
+    transform: rotateX(180deg) translateZ(29px);
+  }
+  .btn-3d-prism.btn-3d-prism-wide span:nth-child(4) {
+    transform: rotateX(90deg) translateZ(29px);
+  }
+}

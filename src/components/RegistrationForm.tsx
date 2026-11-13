@@ -461,22 +461,29 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           </div>
 
           {/* Submit Button */}
-          <div className="pt-4">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={`w-full py-4 rounded-2xl border-3 border-[#111111] font-black text-base sm:text-lg uppercase tracking-wide flex items-center justify-center gap-2 cursor-pointer transition-all ${
-                isSubmitting
-                  ? 'bg-gray-400 text-gray-200 cursor-not-allowed shadow-none'
-                  : 'bg-[#FF6A00] hover:bg-[#e05e00] text-white shadow-[4px_4px_0_0_#111111] active:translate-x-0.5 active:translate-y-0.5'
-              }`}
-            >
-              {isSubmitting ? (
+          <div className="pt-4 flex justify-center">
+            {isSubmitting ? (
+              <button
+                type="button"
+                disabled
+                className="w-full max-w-md py-4 rounded-xl border-2 border-gray-400 bg-gray-300 text-gray-600 font-black text-sm uppercase tracking-wider cursor-not-allowed"
+              >
                 <span>{t.submittingButton}</span>
-              ) : (
-                <span>{t.submitButton}</span>
-              )}
-            </button>
+              </button>
+            ) : (
+              <div className="btn-3d-prism-wrapper w-full">
+                <button
+                  type="submit"
+                  className="btn-3d-prism btn-3d-prism-wide"
+                  aria-label={t.submitButton}
+                >
+                  <span>{t.submitButton}</span>
+                  <span>{t.submitButton}</span>
+                  <span>{t.submitButton}</span>
+                  <span>{t.submitButton}</span>
+                </button>
+              </div>
+            )}
           </div>
         </form>
       </div>

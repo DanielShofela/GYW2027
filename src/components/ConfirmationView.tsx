@@ -26,9 +26,8 @@ export const ConfirmationView: React.FC<ConfirmationViewProps> = ({
   };
 
   const handleShareWhatsApp = () => {
-    const text = encodeURIComponent(
-      `${t.whatsappShareText} https://ais-pre-fcqquovzkgqmrc6afc3sfb-294693009847.europe-west2.run.app`
-    );
+    const shareUrl = 'https://gy2027.netlify.app/';
+    const text = encodeURIComponent(`${t.whatsappShareText} ${shareUrl}`);
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Language, EventSettings } from '../types/index';
 import { translations } from '../i18n/translations';
-import { Calendar, MapPin, Clock, Phone, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Calendar, MapPin, Clock, Phone, AlertCircle, ShieldCheck } from 'lucide-react';
 
 interface HeroProps {
   lang: Language;
@@ -112,20 +112,19 @@ export const Hero: React.FC<HeroProps> = ({
               <span>{lang === 'fr' ? 'Vérification du statut...' : 'Checking registration status...'}</span>
             </div>
           ) : settings.registrationsOpen ? (
-            <button
-              onClick={onGoToRegister}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-[#FF6A00] hover:bg-[#e05e00] text-white text-lg sm:text-xl font-black px-8 py-4 rounded-2xl border-3 border-[#111111] shadow-[5px_5px_0_0_#111111] active:translate-x-1 active:translate-y-1 active:shadow-[1px_1px_0_0_#111111] cursor-pointer transition-all transform hover:-translate-y-0.5"
-            >
-              <div className="text-left sm:text-center">
-                <span className="block text-xl sm:text-2xl font-black leading-none uppercase tracking-wide font-['Space_Grotesk']">
-                  {t.heroCta}
-                </span>
-                <span className="block text-xs font-bold text-[#FFF3DD] uppercase tracking-wider mt-0.5">
-                  {t.heroCtaSub}
-                </span>
-              </div>
-              <ArrowRight className="w-6 h-6 stroke-[3]" />
-            </button>
+            <div className="btn-3d-prism-wrapper my-2">
+              <button
+                type="button"
+                onClick={onGoToRegister}
+                className="btn-3d-prism"
+                aria-label={t.heroCta}
+              >
+                <span>{t.heroCta}</span>
+                <span>{t.heroCta}</span>
+                <span>{t.heroCta}</span>
+                <span>{t.heroCta}</span>
+              </button>
+            </div>
           ) : (
             <div className="bg-[#FFF3DD] border-2 border-[#F0443E] text-[#111111] p-4 rounded-xl max-w-md">
               <p className="font-bold text-[#F0443E] flex items-center justify-center gap-2">
